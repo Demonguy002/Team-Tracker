@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🚀 TeamFlow Productivity Platform</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Inter;
+background:#0b0b12;
+color:white;
+}
+
+header{
+background:#111;
+padding:20px;
+text-align:center;
+font-size:24px;
+}
+
+.container{
+padding:25px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+gap:20px;
+}
+
+.card{
+background:#111;
+padding:20px;
+border-radius:12px;
+border:2px solid transparent;
+animation:rgbBorder 6s linear infinite;
+box-shadow:0 0 20px rgba(0,255,255,0.2);
+}
+
+@keyframes rgbBorder{
+0%{border-color:#ff0000}
+25%{border-color:#00ff00}
+50%{border-color:#00ffff}
+75%{border-color:#ff00ff}
+100%{border-color:#ff0000}
+}
+
+button{
+background:linear-gradient(90deg,#ff00ff,#00ffff);
+border:none;
+padding:8px 14px;
+border-radius:6px;
+color:black;
+cursor:pointer;
+margin-top:6px;
+}
+
+input{
+width:100%;
+padding:8px;
+margin-top:6px;
+border-radius:6px;
+border:none;
+}
+
+canvas{
+margin-top:10px;
+}
+
+.admin{
+display:none;
+margin-top:40px;
+}
+
+.leaderboard div{
+background:#111;
+padding:8px;
+margin-top:6px;
+border-radius:6px;
+}
+
+.profile{
+font-size:13px;
+color:#bbb;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+🚀 TeamFlow Productivity Platform
+</header>
+
+<div class="container">
+
+<h3>Login</h3>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">Login</button> <button onclick="signup()">Signup</button>
+
+<h3>Your Profile</h3>
+
+<input id="name" placeholder="Name">
+<input id="gender" placeholder="Gender">
+<input id="intro" placeholder="Intro">
+
+<h3>Team Dashboards</h3>
+
+<div id="dashboards" class="grid"></div>
+
+<h3>Submit Daily Work</h3>
+
+<input id="work" placeholder="Work done today">
+<input id="learn" placeholder="What you learned">
+<input type="file" id="proofFile">
+
+<button onclick="submitWork()">Submit Work</button>
+
+<h3>Admin Login</h3>
+
+<input id="adminPass" placeholder="Admin password">
+<button onclick="adminLogin()">Login</button>
+
+<div id="adminPanel" class="admin">
+
+<h3>📊 Analytics</h3>
+<canvas id="chart"></canvas>
+
+<h3>📈 Weekly Activity</h3>
+<canvas id="weeklyChart"></canvas>
+
+<h3>🏆 Leaderboard</h3>
+<div id="leaderboard"></div>
+
+<h3>🎯 Assign Task</h3>
+
+<input id="taskDashboard" placeholder="Dashboard number">
+<input id="taskText" placeholder="Task description">
+
+<button onclick="assignTask()">Assign Task</button>
+
+</div>
+
+</div>
+
+<script>
+
+let dashboards=document.getElementById("dashboards")
+
+let dashboardData={}
+
+function renderDashboards(){
+
+dashboards.innerHTML=""
+
+for(let i=1;i<=11;i++){
+
+let d=dashboardData[i]
+
+let card=document.createElement("div")
+
+card.className="card"
+
+if(d){
+
+card.innerHTML=`
+<h4>Dashboard ${i}</h4>
+<p style="color:#ff4d4d">Booked</p>
+<p>${d.email}</p>
+<div class="profile">${d.name||""} | ${d.gender||""}</div>
+<div class="profile">${d.intro||""}</div>
+<div>🔥 Streak: ${d.streak||0}</div>
+<p>${d.task||""}</p>
+<canvas id="ring${i}" width="120" height="120"></canvas>
+`
+
+}else{
+
+card.innerHTML=`
+<h4>Dashboard ${i}</h4>
+<p style="color:#00ff88">Available</p>
+<button onclick="book(${i})">Book</button>
+`
+
+}
+
+dashboards.appendChild(card)
+
+}
+
+}
+
+function book(id){
+
+dashboardData[id]={
+email:document.getElementById("email").value,
+name:document.getElementById("name").value,
+gender:document.getElementById("gender").value,
+intro:document.getElementById("intro").value,
+streak:0
+}
+
+renderDashboards()
+
+}
+
+function submitWork(){
+
+let email=document.getElementById("email").value
+
+if(!email) return
+
+if(!logs[email]) logs[email]=[]
+
+logs[email].push(Date.now())
+
+updateAnalytics()
+
+}
+
+let logs={}
+
+function updateAnalytics(){
+
+let progress={}
+let weekly={}
+
+Object.keys(logs).forEach(user=>{
+
+progress[user]=logs[user].length
+
+logs[user].forEach(d=>{
+let day=new Date(d).getDay()
+weekly[day]=(weekly[day]||0)+1
+})
+
+})
+
+updateLeaderboard(progress)
+createChart(progress)
+weeklyChart(weekly)
+
+}
+
+function getBadge(n){
+
+if(n>=20) return "🏆 Legend"
+if(n>=10) return "🔥 Top Performer"
+if(n>=5) return "⭐ Active"
+return "🌱 Beginner"
+
+}
+
+function updateLeaderboard(p){
+
+let board=document.getElementById("leaderboard")
+
+board.innerHTML=""
+
+let sorted=Object.entries(p).sort((a,b)=>b[1]-a[1])
+
+sorted.forEach((e,i)=>{
+
+board.innerHTML+=`
+<div>${i+1}. ${e[0]} — ${e[1]} logs ${getBadge(e[1])}</div>
+`
+
+})
+
+}
+
+function createChart(p){
+
+new Chart(document.getElementById("chart"),{
+
+type:"bar",
+data:{
+labels:Object.keys(p),
+datasets:[{
+label:"Productivity",
+data:Object.values(p),
+backgroundColor:"#00ffff"
+}]
+}
+
+})
+
+}
+
+function weeklyChart(w){
+
+new Chart(document.getElementById("weeklyChart"),{
+
+type:"line",
+data:{
+labels:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+datasets:[{
+label:"Weekly Activity",
+data:Object.values(w),
+borderColor:"#ff00ff",
+fill:false
+}]
+}
+
+})
+
+}
+
+function assignTask(){
+
+let id=document.getElementById("taskDashboard").value
+let task=document.getElementById("taskText").value
+
+if(dashboardData[id]){
+
+dashboardData[id].task=task
+
+alert("Task assigned")
+
+renderDashboards()
+
+}
+
+}
+
+function adminLogin(){
+
+let pass=document.getElementById("adminPass").value
+
+if(pass==="ANI"){
+
+document.getElementById("adminPanel").style.display="block"
+
+}
+
+}
+
+function reminder(){
+
+let now=new Date()
+
+if(now.getHours()==21){
+
+if(Notification.permission==="granted"){
+
+new Notification("Reminder","Submit your work today 🚀")
+
+}
+
+}
+
+}
+
+setInterval(reminder,60000)
+
+renderDashboards()
+
+</script>
+
+</body>
+</html>
